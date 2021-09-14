@@ -1,0 +1,704 @@
+---
+title: "Sampling Theory, T-Test, Power Analysis"
+output: html_notebook
+---
+
+**Part I - Sampling Theory and Central Limit**
+Sampling theory describes the relationship between a population and samples drawn from that population. We can gain intuition for sampling theory by considering all possible samples (i.e all possible collections of randomly and independently selected observations) of size n that can be drawn from the population. For each sample, we can compute a sample statistic like a mean or a standard deviation. This sample statistic will vary from sample to sample due to sampling error. The distribution of these sample statistics is called the sampling distribution of that statistic. If the statistic is a sample mean , then the distribution is called the sampling distribution of the mean. You can generate sampling distributions of any parameter that you estimate from sampling a population, such as standard deviation, variance, medians, proportion etc.
+
+The Central limit theorem posits that the sampling distribution of the mean of any independent, random variable will be normally distributed (also called a Guassian distribution) or nearly normal, regardless of the shape of the underlying distribution. If the sample size is large enough, the sampling distribution of the mean will be a symetrical bell shaped curve.
+
+To demonstrate this pick a sample from large number of independent and random observations and compute the average from the sample and then redo the sample  n ntimes. Then plot the computed values of the average.
+
+To demonstrate this we will simulate in R one of the most common examples--taking samples by rolling a fair 6 sided die. 
+
+**A fair die** can be modelled with a discrete random variable with outcome 1 through 6, each occuring with the equal probability of 1/6 from a single roll of the die.
+
+So the expected (i.e. the mean) value can be calculated as
+$$\frac{1+2+3+4+5+6}{6} = 3.5$$
+We can test this in R
+```{r}
+mean_value <- sum(seq(1:6) * (1 / 6))
+
+
+print(mean_value)
+```
+
+Ok, so now lets role the die 10000 times and plot the frequency of each outcome (whether you get a 1, 2, 3, etc.). WE can take advantage of the R function `sample` to do this simulation. The r syntax to simulate  throwing a die 10000 times is (make sure you explore how this code works, we will see it again soon!)
+```{r}
+DieOutCome <- sample(1:6,10000, replace= TRUE)
+library(ggplot2)
+p1=ggplot(data.frame(DieOutCome), aes(x=DieOutCome))+geom_histogram(col ="light blue")
+p1+geom_vline(xintercept =3.5, col = "red")
+```
+Note that each outcome occurs with equal probability and the mean is ~3.5 (red line). Now take random samples of n = 10 , from the above 10000 observations of outcomes from indepedent die rolls. For each sample of 10 caalculate the sample mean and plot it. Do this sampling procedure 1000 times. Pay close attention to the process of running a simulation...being able to simulate data is one of the most powerful and useful benefits to learning R programming. 
+
+To simulate a sampling scheme like this you have to first create an empty vector (or data frame if simulating more than a single value or level) to accept the simulations output.
+```{r}
+n_10 <- c()
+n_10
+```
+Next create a for loop to generate the data.  The for loop tell R to run a procedure described inside the loop until some criteria is reached (in this case until we get to 1000 total_samples)
+```{r}
+total_samples =10000
+
+for ( i in 1:total_samples) {
+  DieOutCome <- sample(1:6,10, replace= TRUE) #take a sample of 10 die rolls
+ n_10[i] = mean(DieOutCome)   #calculate the sample mean and place it into element i of the vector n_10 that we created
+ } 
+
+p2=ggplot(data.frame(n_10), aes(x=n_10))+geom_histogram(col ="pink")
+p2+geom_vline(xintercept =3.5, col = "blue")
+```
+Now lets explore how sample size affects the shape of this sampling distribution.  AS discusssed in lecture, as the sample size increases, the lower the uncertainty of our sample statistic which is evident by the spread and shape of the sampling distribution. Lets do this by increasing the sample size to 30, 100 and 1000 in above example 1.
+```{r}
+ n_20 <- c()
+ n_100 <- c()
+ n_1000 <- c()
+ 
+ total_samples =10000
+
+for ( i in 1:total_samples) {
+ n_20[i] = mean(sample(1:6,20, replace= TRUE))
+ n_100[i] = mean(sample(1:6,100, replace= TRUE)) 
+ n_1000[i] = mean(sample(1:6,1000, replace= TRUE)) 
+} 
+ 
+p3=ggplot(data.frame(n_20), aes(x=n_20))+geom_histogram(col ="yellow")+geom_vline(xintercept =3.5, col = "black")+ggtitle("n=20")
+p4=ggplot(data.frame(n_100), aes(x=n_100))+geom_histogram(col ="dodgerblue")+geom_vline(xintercept =3.5, col = "black")+ggtitle("n=100")
+p5=ggplot(data.frame(n_1000), aes(x=n_1000))+geom_histogram(col ="violet")+geom_vline(xintercept =3.5, col = "black")+ggtitle("n=1000")
+p2=p2+ggtitle("n=10")
+install.packages("cowplot")
+library(cowplot) #install this library if you dont have it
+plot_grid(p2,p3,p4,p5,nrow=2)
+```
+**Challenge #1**
+Repeat the exercise above except calculate the sampling distributions of the standard error.  Submit the 4 panel plot parallel to the above for standard errors.
+
+```{r}
+n_20 <- c()
+ n_100 <- c()
+ n_1000 <- c()
+ 
+ total_samples =10000
+
+std <- function(x) sd(x)/sqrt(length(x))
+ 
+for ( i in 1:total_samples) {
+ n_20[i] = std(sample(1:6,20, replace= TRUE))
+ n_100[i] = std(sample(1:6,100, replace= TRUE)) 
+ n_1000[i] = std(sample(1:6,1000, replace= TRUE)) 
+} 
+
+?stderr
+ 
+p3=ggplot(data.frame(n_20), aes(x=n_20))+geom_histogram(col ="yellow")+geom_vline(xintercept =3.5, col = "black")+ggtitle("n=20")
+p4=ggplot(data.frame(n_100), aes(x=n_100))+geom_histogram(col ="dodgerblue")+geom_vline(xintercept =3.5, col = "black")+ggtitle("n=100")
+p5=ggplot(data.frame(n_1000), aes(x=n_1000))+geom_histogram(col ="violet")+geom_vline(xintercept =3.5, col = "black")+ggtitle("n=1000")
+p2=p2+ggtitle("n=10")
+install.packages("cowplot")
+library(cowplot) #install this library if you dont have it
+plot_grid(p2,p3,p4,p5,nrow=2)
+```
+
+
+
+**Part II - Comparing Means**
+*This part of the tutorial was modified from Schluter and Whitlock*
+
+```{r}
+library(ggplot2)
+library(car)
+```
+
+Use the Titanic data set for these examples. For practive write the code to load these data into R
+```{r}
+library(ggplot2)
+install.packages("tidyverse")
+install.packages("dplyr")
+
+Titanic <- read.csv("/tmp/myrepo/stats class/titanic.csv", na.strings = "", stringsAsFactors = TRUE)
+
+passenger <- read.csv("/tmp/myrepo/stats class/titanic.csv")
+
+head(passenger)
+tail(passenger)
+
+df <- data.frame(col1=Titanic$age, Col2=Titanic$survive)
+print(df)
+
+```
+Its always good practice to visualize your data before you start any analysis.  This allows you to make sure the experimental design and data appear as you expect them too.  For example, to make sure things are being read as continuous versus categorical or not.
+
+I often use different approaches for different problems but will show a couple examples of useful exploratory plot types here.
+
+**Strip charts**
+A strip chart is a graphical technique to show the values of a numerical variable for all individuals according to their groups in a reasonably concise graph. Each individual is represented by a dot. To prevent nearby data points FROM obscuring each other, typically a strip chart adds “jitter”. That is, a little random variation is added to nudge each point to one side or the other to make it individually more visible.
+
+`geom_jitter()`
+
+In R, one can make strip charts with ggplot() using the geom function geom_jitter(). In the command below, we specify x = survive to indicate the categorical (group) variable and y = age to specify the numerical variable. If we want more or less jitter, we could use a larger or smaller value than 0.05 in the option `position_jitter(0.05)`.
+
+```{r}
+?data.frame
+
+ggplot(passenger, aes(x=survive, y=age)) +geom_jitter(position = position_jitter(0.05)) +theme_minimal()+ labs(x="Survived", y="Age")
+
+```
+
+The strip chart indicates a weak tendency for survivors to be younger on average than non-survivors (i.e. younger people had a higher chance of surviving the Titanic disaster than older people - maybe we should rename covid 19 the titanic flu).
+
+**Multiple histograms**
+
+Multiple histogram plots visualize the frequency distribution numerical variables separately for each of two or more groups. Allows easy comparison of the location and spread of the variable in the different groups, and it helps to assess whether the assumptions of relevant statistical methods are met.
+
+```{r}
+ggplot(passenger, aes(x = age)) +   
+    geom_histogram() +
+  facet_wrap(~ survive, ncol = 1) #makes 1 panel for each variable, ncol=1 makes them above and below
+ggplot(passenger, aes(x = age)) +   
+    geom_histogram() + 
+    facet_wrap(~ survive, ncol = 2) #makes 1 panel for each variable, ncol=2 makes them left and right
+```
+
+Note the numerical variable is entered as the variable on the x axis (x = age). No y variable is specified because that is simply the count of individuals that have that age. The categorical variable is specified in the facet_wrap() function (~ survive).
+
+**Violin plots**
+
+Another good way to visualize the relationship between a group variable and a numerical variable is a violin plot. These provide similar information as boxplots except you can see the density of points rather than quartiles.
+
+```{r}
+ggplot(passenger, aes(x=survive, y=age, fill = survive)) + 
+  geom_violin() +
+  xlab("Survival") + ylab("Age") + 
+  theme_classic()+scale_fill_manual(values=c("#FFB531","#BC211A"))+ 
+  stat_summary(fun.y=mean,  geom="point", color="black")+ 
+  theme(legend.position="none")+ 
+  theme(aspect.ratio=1)
+```
+
+**Box plots**
+```{r}
+ggplot(passenger, aes(x=survive, y=age, fill = survive)) + 
+  geom_boxplot(alpha=.5) + 
+  xlab("Survival") + ylab("Age") + 
+  theme_classic()+scale_fill_manual(values=c("#FFB531","#BC211A"))+ 
+  theme(legend.position="none")+ 
+  theme(aspect.ratio=1)
+
+```
+
+**Combination displays**
+
+You can also overlay differnt styles of plots for even more information
+```{r}
+ggplot(passenger, aes(x=survive, y=age, fill = survive)) + 
+  geom_jitter(position = position_jitter(0.05)) +geom_boxplot(alpha=.5) + 
+  xlab("Survival") + ylab("Age") + 
+  theme_classic()+scale_fill_manual(values=c("#FFB531","#BC211A"))+ 
+  theme(legend.position="none")+ 
+  theme(aspect.ratio=1)
+ggplot(passenger, aes(x=survive, y=age, fill = survive)) + 
+  geom_jitter(position = position_jitter(0.05)) +geom_violin(alpha=.5) + 
+  xlab("Survival") + ylab("Age") + 
+  theme_classic()+scale_fill_manual(values=c("#FFB531","#BC211A"))+ 
+  theme(legend.position="none")+ 
+  theme(aspect.ratio=1)
+```
+**Comparing means - Hypothesis Testing**
+
+One of the most basic methods for testing whether two populations are statistically different is to run a T-test.  The T-test tests the Null hypothsis that two samples are not taken from different true populations.  
+
+**Two-sample t-test**
+
+The two-sample t-test is used to compare the means of two groups. This test can be performed in R using the function `t.test()`. 
+
+`t.test()` actually performs a wide array of related calculations.
+
+We will assume here that you have your data in the “long” format; that is, each row in your data frame (or tibble) describes a different individual measurement and columns correspond to different variables. For a 2-sample t-test, two variables are used, one categorical and one numerical. So we assume that there is a column in the data frame indicating which group an individual belongs to, and another column that contains the measurements for the numerical variable of interest.
+
+The t.test() function uses a “formula” as one of its arguments. In a formula, the response variable is given first, followed by a tilde (~), followed by the explanatory variable. 
+
+With a t-test, the explanatory variable is the categorical variable defining the two groups and the response variable is the numerical variable.
+
+For example, to test whether the individuals which survived the Titanic disaster had the same average age as those passengers who did not survive--the formula is “age ~ survive”.
+
+To do a 2-sample t-test, t.test() also needs two other pieces of input. You need to specify which data frame contains the data, and you need to specify whether or not you want to assume that the variances of the two groups are equal. 
+
+To specify the data frame to use, we give a value for the argument “data”, such as “data = titanicData”. To tell R to assume that the variances are equal, we use the option “var.equal = TRUE”.
+
+```{r}
+t.test(age ~ survive, data = passenger, var.equal = TRUE)
+```
+**The output**
+Gives the test statistic `t`, the degrees of freedom for the test (df), and the P-value for the test of equal population means (which in this case is P = 0.044).
+
+Under “95 percent confidence interval,” this output gives the 95% confidence interval for the difference between the population means of the two groups. Finally, it gives the sample means for each group in the last line.
+
+**Welch’s t-test**
+
+The above 2-sample t-test assumes that both populations have the same variance for the numerical variable. However, the 2-sample t-test can have *very high Type I error rates* when the assumption of equal variances is violated. 
+
+Welch’s t-test does not assume equal variance. 
+
+Calculating Welch’s t-test in R uses the same function t.test(), but with the option var.equal set to FALSE.
+```{r}
+t.test(age ~ survive, data = passenger, var.equal = FALSE)
+```
+The output is the same as the 2-sample t-test above, except that the first line of the output tells us that R did a Welch’s t-test. Welch’s t-test (with var.equal = FALSE) is actually the default for t.test(). 
+
+**Paired t-test**
+
+The function t.test() can also perform paired t-tests. A paired t-test is used when each data point in one group is paired meaningfully with a data point in the other group.
+
+For this example we will use the blackbird data set. These data show the log of antibody production of male blackbirds before (logBeforeImplant) and after (logAfterImplant) the birds received a testosterone implant. There is a before and after measure for each bird, so the data are paired meaningfully.
+
+Please load the data.
+
+
+```{r}
+# code not provided for practice
+blackbird <- read.csv("/tmp/myrepo/stats class/BlackbirdTestosterone.csv")
+```
+The paired t-test is the same as above except you also have to specify the option `paired = TRUE`
+
+```{r}
+t.test(blackbird$logAfterImplant, blackbird$logBeforeImplant, paired = TRUE)
+```
+The output is again the same except for the first line. The output also gives the 95% confidence interval for the mean of the difference between groups. (It will calculate the difference by subtracting the variable you listed second from the variable you listed first: here that is logAfterImplant – logBeforeImplant.) 
+
+
+**Part III - Simulating data to optimize experimental designs**
+How big an effect are you expecting? What are the chances that you would detect it? What sample size would you need to in order to have a reasonable chance of succeeding? How narrow a confidence interval around the estimated effect would you be happy with? This R tutorial shows how R can be used to address some of these questions.
+
+First we need to re-familiarize ourselves with simulating data.
+
+*Simulate data*
+
+Two vector commands we will use frequently are `c` to concatenate values and `rep` to replicate values. For example,
+
+```{r}
+x1 <- c(1,2,3,4,5)             # concatenate the numbers in a vector
+x2 <- c(x1, c(9,8,7))          # combine two vectors into one
+x <- rep(1,10)                 # make a vector with ten 1's
+x <- rep(c(1,2), 5)            # make the vector 1 2 1 2 ... (5 times)
+A <- rep(c("a","b"), c(4,2))   # make the vector a a a a a b b
+
+```
+
+*Sampling/simulating data from a Normally-distributed population*
+
+In the following example we sample 5 random numbers from a normal population having a mean of 2 and a standard deviation of 10.
+```{r}
+x <- rnorm(5, mean = 2, sd = 10)
+
+x
+```
+```{r}
+x<- rnorm(5, mean = 2, sd = 10)
+x
+
+```
+```{r}
+x <- rnorm(5, mean = 2, sd = 10)
+x
+```
+```{r}
+x <- rnorm(5, mean = 5, sd = 20)
+
+x
+
+```
+
+
+
+Repeat the above sampling several times to see that the sample population is different each time. You might try changing the mean and sd values to see how this affect the results or the sample size.
+
+
+*Simulating with Categorical data*
+
+Take a sample of 20 individuals from a population where 40% of individuals are diseased..note since these are proportions/binomial data we use slightly different code from above. We use the `sample` function becase each observation we sample an individuals that is either healthy or diseased.
+
+```{r}
+f <- sample(c("diseased","healthy"), size=20, replace=TRUE, prob=c(.4,.6))
+table(f)
+```
+
+
+*Two Categories/treatments from a normal distribution*
+
+create a data frame with data from 20 individuals in two treatment groups (10 in each group). Keeping the mean response is the same between treatments.  Here we use rep to generate our treatment levels and then rnorm to generate our samples and then data.frame to bind them together into a single data object.  
+
+```{r}
+treatment <- rep(c("treat","control"), c(10,10))
+response <- rnorm(20, mean = 10, sd = 3)
+x <- data.frame(treatment, response, stringsAsFactors = FALSE)
+x
+```
+
+
+You can modify the above procedure so that the mean is different between treatment and control groups, but the standard deviation remains the same (the usual assumption of most linear models).
+
+```{r}
+treatment <- rep(c("treat","control"), c(10,10))
+response1 <- rnorm(10, mean = 10, sd = 3)
+response2 <- rnorm(10, mean = 8,sd = 3)
+x <- data.frame(treatment, response = c(response1, response2),stringsAsFactors = FALSE)
+x
+```
+
+*Two treatments, with a categorical response variable*
+
+Generate a data frame with categorical data from 20 individuals in two treatment groups (10 in each group). The response variable is “dead” or “alive” and the proportion alive is the same, 0.3, between treatments.
+
+```{r}
+treatment <- rep(c("treat","control"), c(10,10))
+survival <- sample(c("alive","dead"), size = 20, replace = TRUE, prob = c(.3,.7))
+x <- data.frame(treatment, survival, stringsAsFactors = FALSE)
+table(x) # view the sampling results
+```
+
+
+Now you can modify the above procedure so that the probability of survival is different between treatment (0.6) and control (0.3) groups.
+
+```{r}
+
+treatment <- rep(c("treat","control"), c(10,10))
+s1 <- sample(c("alive","dead"), 10, replace = TRUE, prob = c(.6,.4))
+s2 <- sample(c("alive","dead"), 10, replace = TRUE, prob = c(.3,.7))
+x <- data.frame(treatment, survival = c(s1,s2), stringsAsFactors = FALSE)
+table(x) # view the sampling results
+```
+
+**Challenge Questions**
+Now using what you learned above about randomly sampling/simulatingcategorical data from a population. Try the following challenge problems.
+
+
+2. Randomly sample 20 observations from a population having two groups of individuals, “infected” and “uninfected”, in equal proportions. Put the data together into a single data object (e.g. a data frame), and summarize the results in a frequency table.
+
+```{r}
+infection <- sample(c("infected","uninfected"), size=20, replace=TRUE, prob=c(.5,.5))
+d <- data.frame(infection, stringsAsFactors = FALSE)
+table(infection)
+
+ggplot(d, aes(x=infection)) + 
+  geom_bar(fill="blue") +
+  labs(x="Infection Status", y="Frequency")
+```
+
+
+3. Sample 30 observations from a normally-distributed population having mean 0 and standard deviation 2. Plot the results in a histogram.
+    
+```{r}
+x <- rnorm(30, mean = 0, sd = 2)
+x
+d <- data.frame(x)
+d
+ggplot(data.frame(d), aes(x=x))+
+  geom_histogram(fill="purple") +
+  labs(x="Sampling", y="Frequency")
+```
+    
+    
+    
+4. Repeat the following 10 times and calculate the mean each time: sample 30 observations from a normally-distributed population having mean 0 and standard deviation 2. Create a data.frame containing the output from the 10 simulations and generate a single plot demonstrating the mean and st.dev of each of 10 samples.
+
+
+```{r}
+x1 <- rnorm(30, mean = 0, sd = 2)
+m1 <- mean(x1)
+s1 <- sd(x1)
+
+x2 <- rnorm(30, mean = 0, sd = 2)
+m2 <- mean(x2)
+s2 <- sd(x2)
+
+x3 <- rnorm(30, mean = 0, sd = 2)
+m3 <- mean(x3)
+s3 <- sd(x3)
+
+x4 <- rnorm(30, mean = 0, sd = 2)
+m4 <- mean(x4)
+s4 <- sd(x4)
+
+x5 <- rnorm(30, mean = 0, sd = 2)
+m5 <- mean(x5)
+s5 <- sd(x5)
+
+x6 <- rnorm(30, mean = 0, sd = 2)
+m6 <- mean(x6)
+s6 <- sd(x6)
+
+x7 <- rnorm(30, mean = 0, sd = 2)
+m7 <- mean(x7)
+s7 <- sd(x7)
+
+x8 <- rnorm(30, mean = 0, sd = 2)
+m8 <- mean(x8)
+s8 <- sd(x8)
+
+x9 <- rnorm(30, mean = 0, sd = 2)
+m9 <- mean(x9)
+s9 <- sd(x9)
+
+x10 <- rnorm(30, mean = 0, sd = 2)
+m10 <- mean(x10)
+s10 <- sd(x10)
+
+#dataframe for all sampling
+d <- data.frame(col1= c(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10))
+
+#dataframe for means and stnd dev
+x <- data.frame(col1= c(m1, m2, m3, m4, m5, m6, m7, m8, m9, m10), col2= c(s1, s2, s3, s4, s5, s6, s7, s8, s9, s10))
+x
+
+ggplot(data.frame(x), aes(x=col1))+
+  geom_histogram(fill="darkslategray4", binwidth = 0.05)+
+  geom_point(aes(y=col2), color="deeppink4") +
+  labs(x="observation mean and sd", y= "value")
+
+  
+```
+
+
+
+
+**Power Analysis**
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+**Power analysis for experimental design**
+
+Learning how to run simulations can be helpful because it allows you to generate a lot of data based on the characteristics of a small amount of data. This might sound fishy, but it depends on the context and how the simulated data is used.  For instance, making up data is completely appropriate if you want to run a power analysis, or test the precision/accuracy of a statistic.  
+
+
+We will simulate data in other contexts in this class, and so it is useful to spend some time to understand the logic behind the code that generates the simulations.
+
+**Introduction to power analysis**
+
+Power analysis it about minimizing type II error, or in other words minimizing the risk that you will not detect an effect that is really there with your data and analysis.  Risking making a Type II error is often considered to be more acceptable than making a Type I error (Detecting an effect that is not really there), which tend to get more focus due in part to the “P<0.05 is significant” mentality. However, the consequences of making a type I or II error can be equally severe depending on context.  For instance, having a low type I error rate is really important if you want to determine if a new COVID-19 vaccine or therapy actually works. But in fields like conservation science ecology and evolution, type II errors may be more consequential. For example, if we are studying the effects of environmental change , then Poor power would mean we are unlikely to detect environmental change in an experiment, or to detect the effects of an
+oil spill on a rare seabird colony.
+
+So you’d want enough power to detect an effect, should it be there.
+
+Power analysis can be especially useful for minimizing type II errors, when used in the broader sense of the term. Broad-sense power analysis is used to determine how well your (or someone elses data) and a statistical model work together to measure an effect (in other words determining if you are quantifying the right effect given your model).
+
+Regardless of whether you run a more traditiona power analysis (see text by Quinn and Keough book on Canvas) or a broad sense power analysis (covere in more depth in Bolker 2008 - Ecological Models and Data in R)--A power analysis is a really helpful tool when designing experiments, or field surveys.
+
+**Running a Power analysis for experimental design**
+*This example is modeled after a blue ecology blog on R-bloggers.*
+
+Let’s say you want to know whether there are more fish inside a marine reserve (that have no fishing) than outside the reserve. You are going to do a number of standardized transects inside and outside the reserve and count the numbers of fish.
+
+Your fish species of interest are a very abundant sweetlips and a rather rare humphead wrasse. You want to know your chances of detecting a 2x difference in the abundance of each fish species inside the reserves where fishing is not permitted versus outside the reserves where both the species can be fished.
+
+We can use a power analysis to address this question.  The power analysis is accomplished by simulating ‘fake’ data for the surveys where we can impose a doubling of abundance. We can then fit our proposed statistical model  to the fake data (i.e., run a statistical analysis), then decide whether or not we can detect a difference in the abundances that are ‘significant’ based on some arbitrarily determined critical value (e.g. p<0.05). Then we can repeat that "fake" or simulated experiment a 1000 times (note that each simulated experiment is subject to sampling error within and without the reserve zones) and count up the % of times we said there was a difference. That calculated % is wht we call the power of the test.
+
+So the things that affect the power of a test are the same as those things we have been learning affect the precision of a sample (i.e., sample size and sampling error). Therefore, we need to know the expected sample size of surveys, the expected (mean) abundance values (inside and outside the reserves) and an estimate of the variance or spread in the abundance samples. To get estimates of means and variances you could draw on earlier literature to make estimated guesses (assuming they provide unbiased estimates of the true population parameters). But, the sample size is not a characteristic of true population and so trying a range of sample sizes could be part of your power analysis.
+
+Let’s assume there are normally 10 sweetlips per transect and 1 humphead wrasse per transect.
+
+While not ideal for this type of data (counts) we will assume a normal distribution (we will discuss alternate distributions in a couple of weeks) with equal variance (which simplifies this example a little), so the standard deviation of both species across transects will be assumed to be 1.5.
+
+**Simulating the data**
+
+We are going to use quite a few packages that can be quite useful for simulations (you may need to install some of these):
+```{r}
+library(purrr)
+library(ggplot2)
+library(broom)
+library(dplyr)
+library(tidyr)
+
+```
+
+
+`purrr` for creating 1000s of randomized datasets
+`ggplot2` for plots, 
+`broom` is for sweeping up (literally for cleaning) the 1000s of models youll fit,
+`dplyr` and `tidyr` are for data wrangling--and as you now know :)
+
+Now we will create a function that simulates data and fits a model. This may look overwhelming, but don’t worry!   We will start off by writing a simple function to calculate a statistic of interest - in this case the mean of a column of data. We will create a simple matrix for our data set to illustrate the format as illustrated below -- We’ll call our function “mean_calculator”. 
+
+
+```{r}
+x_data=matrix(1:100,nrow=25,ncol=4)
+mean_calculator <- function(x,i){mean(x[,i])} #this function calculate the mean of object x column i (indicated by x[ ,i], since matrices are organized as [row,column])
+sd_calculator <- function(x,i){sd(x[,i])} #this function calculate the variance of object x column i (indicated by x[ ,i], since matrices are organized as [row,column])
+```
+So now there is a function in the R environment called mean_calculator (be careful with naming because if you just named this function `mean` it would overwrite the built in function that calculates the mean).  This function works just like a built in function in R.  There are arguments that must be specified to operate the function.  These are dictated in the parentheses after the `function` operator.  For instance here, `x` refers to the data and `i` serves as a counter to identify which column. Using your function is illustrated below.
+
+```{r}
+mean_calculator(x_data,1)
+mean_calculator(x_data,3)
+mean_calculator(x_data,c(1,4))
+sd_calculator(x_data,1)
+sd_calculator(x_data,3)
+sd_calculator(x_data,c(1,4))
+```
+*Make sure you understand the logic of writing a function - this is a super useful skill!!!*
+
+Okay, so now we will do something more sophisticated but conceptually identical to the function we wrote above. 
+
+'We are going to write a function that simulates data from two groups (reserve or not reserve) for n transects, and then runs a t-test and  spits out a p-value of the test of the null hypothesis that the two populations were not different.
+
+```{r}
+simulator <- function(n, x1, x2){
+  x <- rep(c(x1, x2), each = n/2) #this creates a column labeling the two factors
+  y <- rnorm(n, mean = x,sd=1.5) #this takes a random sample from with sample size n .
+  m1 <- t.test(y ~ x, var.equal=TRUE)  
+  m1%>%tidy()
+}
+
+```
+
+Now we can use the `simulator` function that we wrote to simulate counting wrasse on 100 transects (50 inside and 50 outside the reserve).  You can set a seed for the psuedo random number generator to make sure you get the same answer every time.  The mean inside is 10 (arbitrary here) and outside is 12 (a  difference)
+
+```{r}
+set.seed(2001) #just do this to get the same result as me
+simulator(100, 10, 12)
+```
+So you should have gotten a table with mean estimated difference, within group means , confidence intervals for the difference  and p-values.
+
+*Narrow-sense power analysis*
+
+Now we can use the purrr library to do this 1000 times except we will make n=10:
+
+```{r}
+?map
+mout <- map(1:1000, ~simulator(10, 10, 12))
+```
+
+
+This generates 1000 lists of output similar to what we saw for the single run, but 1000 lists is very messy so you need to wrangle these output using the skills we learned last week. 
+ 
+```{r}
+mout2 <- mout %>%
+  bind_rows(.id = "rep") %>%
+  #filter(term != "(Intercept)") %>%
+  mutate(Signif = p.value < 0.05,
+         rep = as.numeric(rep))
+head(data.frame(mout2))
+```
+Now you should have a dataframe of the 1000 simulations, indicating whether p for the difference between reserve vs unreserved was <0.05 (column ‘Signif’).
+
+To get the power, we just sum Signif and divide by the 1000 trials:
+
+```{r}
+#glimpse(mout2)
+num_sig=nrow(mout2%>%filter(Signif=="TRUE"))
+percent_sig=num_sig/1000
+percent_sig
+```
+
+So there is an approx ~45% chance that you would detect a  difference in wrasse abundance with
+10 transects. This is the 2-sided probability, arguably for this question
+we could also use a one-sided test.
+
+**Challenge**
+**5.** Try it again for the sweetlips (expected abundance doubling from 12 to 15). You’ll see you get much more power with this more abundant species (almost 100%).
+
+```{r}
+
+mout <- map(1:1000, ~simulator(10, 10, 15))
+
+mout2 <- mout %>%
+  bind_rows(.id = "rep") %>%
+  #filter(term != "(Intercept)") %>%
+  mutate(Signif = p.value < 0.05,
+         rep = as.numeric(rep))
+head(data.frame(mout2))
+
+
+num_sig=nrow(mout2%>%filter(Signif=="TRUE"))
+percent_sig=num_sig/1000
+percent_sig
+
+```
+**6.** Try this with different sample sizes for both species to get an idea of how much effort you need to invest in doing transects in order to see a difference (if the difference is really there of course).
+
+```{r}
+mout <- map(1:1000, ~simulator(20, 10, 12))
+
+mout2 <- mout %>%
+  bind_rows(.id = "rep") %>%
+  #filter(term != "(Intercept)") %>%
+  mutate(Signif = p.value < 0.05,
+         rep = as.numeric(rep))
+head(data.frame(mout2))
+
+
+num_sig=nrow(mout2%>%filter(Signif=="TRUE"))
+percent_sig=num_sig/1000
+percent_sig
+
+```
+
+```{r}
+mout <- map(1:1000, ~simulator(40, 10, 12))
+
+mout2 <- mout %>%
+  bind_rows(.id = "rep") %>%
+  #filter(term != "(Intercept)") %>%
+  mutate(Signif = p.value < 0.05,
+         rep = as.numeric(rep))
+head(data.frame(mout2))
+
+
+num_sig=nrow(mout2%>%filter(Signif=="TRUE"))
+percent_sig=num_sig/1000
+percent_sig
+```
+
+
+**Broad-sense power analysis**
+
+How good does our statistical model estimate the effect??? OR, How close does our approach get us to the expected difference? We can answer that by looking at the estimates:
+
+```{r}
+ggplot(mout2, aes(x = estimate)) +
+  geom_density(fill = "tomato") +
+  theme_bw() +
+  geom_vline(xintercept = -2) +
+  xlab("Estimated difference")
+```
+
+
+This distribution shows the expected outcomes we’d estimate over 1000 repeats of the surveys. So the solid vertical line is the ‘real’ difference. 
+
+
+**Bias in significant estimates**
+
+It is reasonably well known that over-use of p-values can contribute to publication bias, where scientists tend to publish papers about significant and possibly overestimated effect sizes, but never publish the non-significant results. This bias can be particularly bad with small sample sizes, because there is a reasonable chance we’ll see a big difference and therefore, make a big deal about it.
+
+We can look at this phenomena in our simulations. First, let’s take the mean of our estimated effect sizes for those trials that were significant and those that were not:
+
+```{r}
+signif_mean <- mean((filter(mout2, Signif)$estimate))
+nonsignif_mean <- mean((filter(mout2, !Signif)$estimate))
+all_mean <- mean((mout2$estimate))
+c(all_mean, signif_mean, nonsignif_mean)
+```
+
+
+So average effect size for the significant trials is ~3 (remember the real difference is 2). If we take the average across all trials it is closer to the truth (2.00).
+
+Clearly if we only publish the significant results, over many studies this will add up to a much bigger difference than is really there. This can be a problem in some fields. 
+
+Now we can look at this as a plot using the same distribution as above, but with different colors for significant versus non-significant.
+
+```{r}
+ggplot(mout2, aes(x = (estimate), fill = Signif)) +
+  geom_density(alpha = 0.5) +
+  theme_bw() +
+  geom_vline(xintercept = -2) +
+  xlab("Estimated difference") 
+  #xlim(0,5)
+```
+
+
+You can clearly see the significant trials almost always overestimate the true difference (vertical line).
+
+So, make sure you report on non-significant results. And try to aim for larger sample sizes.
